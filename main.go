@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+  "strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -34,7 +35,7 @@ func LoadList(path string) (*TodoList, error) {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		var response string
-		fmt.Print("No Todolist detected!! Would you like to create one? (y/n)")
+		fmt.Print("No Todolist detected!! Would you like to create one? (y/n)\n>> ")
 		fmt.Scanln(&response)
 
 		if response == "y" || response == "Y" {
@@ -47,12 +48,12 @@ func LoadList(path string) (*TodoList, error) {
 		}
 
 	} else {
-		// Open the config file
+		// Open the todolist file
 		file := Must(os.Open(path))
 
 		defer file.Close()
 
-		// Decode the JSON into the config struct
+		// Decode the YAML into the todolist struct
 		decoder := yaml.NewDecoder(file)
 		if err := decoder.Decode(todolist); err != nil {
 			return nil, err
@@ -87,10 +88,19 @@ func AddItem(path string, todolist *TodoList) error {
 }
 
 func PrintList(todolist *TodoList) {
+  fmt.Println(" __ __        ___         _       _    _        _  ") 
+  fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_") 
+  fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ") 
+  fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
+  fmt.Println("       <___'                                        ")
+  fmt.Println("========================================================")
 	for _, item := range todolist.Items {
-		fmt.Printf("Title:          %s\n", item.Title)
+		fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
+    fmt.Println("--------------------------------------------------------")
 		fmt.Printf("Description:    %s\n", item.Description)
 		fmt.Printf("Priority:       %d\n", item.Priority)
+    fmt.Println("========================================================")
+
 	}
 }
 
@@ -110,7 +120,7 @@ func main() {
 	flag.Parse()
 
 	if *addPtr {
-    err := AddItem(todolistPath, todolist)
+		err := AddItem(todolistPath, todolist)
 
 		if err != nil {
 			fmt.Println("Error adding item!")
