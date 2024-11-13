@@ -80,11 +80,28 @@ func AddItem(path string, todolist *TodoList) error {
 		Title:       title,
 		Description: description,
 		Priority:    priority,
+    Completed:   false,
 	}
 
 	todolist.Items = append(todolist.Items, newItem)
 
 	return SaveList(path, todolist)
+}
+
+// func RemoveItem(path string, 
+
+func CompleteItem(todolist *TodoList, path string, title string) error {
+  completed_item := strings.ToLower(title);
+
+  for i := range todolist.Items {
+    if strings.ToLower(todolist.Items[i].Title) == completed_item {
+      todolist.Items[i].Completed = true
+
+      return SaveList(path, todolist)
+    }
+  }
+
+  return fmt.Errorf("Item not found!")
 }
 
 func PrintList(todolist *TodoList) {
@@ -99,6 +116,14 @@ func PrintList(todolist *TodoList) {
     fmt.Println("--------------------------------------------------------")
 		fmt.Printf("Description:    %s\n", item.Description)
 		fmt.Printf("Priority:       %d\n", item.Priority)
+    
+    var comp string
+    if item.Completed {
+      comp = "✓"
+    } else {
+      comp = "𐄂"
+    }
+    fmt.Printf("Completed:      %s\n", comp)
     fmt.Println("========================================================")
 
 	}
@@ -116,6 +141,7 @@ func main() {
 	todolist := Must(LoadList(todolistPath))
 
 	addPtr := flag.Bool("add", false, "used to add a new item to the list")
+  compPtr := flag.String("completed", "", "used to indicate a todolist item that has been completed")
 
 	flag.Parse()
 
@@ -128,5 +154,17 @@ func main() {
 			fmt.Println("Item added successfully!")
 		}
 	}
+
+  if *compPtr != "" {
+    err := CompleteItem(todolist, todolistPath, *compPtr)
+    if err == nil {
+      fmt.Printf("Successfully completed %s", *compPtr)
+    } else {
+      fmt.Println("Error completing item!", err)
+      
+    }
+  }
+
+
 	PrintList(todolist)
 }
