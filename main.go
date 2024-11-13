@@ -89,18 +89,18 @@ func AddItem(path string, todolist *TodoList) error {
 }
 
 func RemoveItem(todolist *TodoList, title string, path string) error {
-  search := strings.ToLower(title)
-  var index int
+	search := strings.ToLower(title)
+	var index int
 
-  for i := range todolist.Items {
-    if strings.ToLower(todolist.Items[i].Title) == search{
-      index = i
-    }
-  }
+	for i := range todolist.Items {
+		if strings.ToLower(todolist.Items[i].Title) == search {
+			index = i
+		}
+	}
 
-  todolist.Items = append(todolist.Items[:index], todolist.Items[index+1:]...)
-  
-  return SaveList(todolist, path)
+	todolist.Items = append(todolist.Items[:index], todolist.Items[index+1:]...)
+
+	return SaveList(todolist, path)
 }
 
 func CompleteItem(todolist *TodoList, title string, path string) error {
@@ -117,7 +117,7 @@ func CompleteItem(todolist *TodoList, title string, path string) error {
 	return fmt.Errorf("Item not found!")
 }
 
-func CheckCompleted(todolist *TodoList) {
+func CheckCompleted(todolist *TodoList) int {
 	completedCount := 0
 
 	for i := range todolist.Items {
@@ -125,13 +125,25 @@ func CheckCompleted(todolist *TodoList) {
 			completedCount++
 		}
 	}
-
-	if completedCount > 0 {
-		fmt.Printf("\n\t !!! You have %d completed item(s) !!!\n\n", completedCount)
-	}
+  return completedCount
 }
 
-// func RemoveCompleted(todolist *TodoList)
+func RemoveCompleted(todolist *TodoList, path string) {
+  var response string
+  fmt.Print("\nWould you like to delete all completed items? (y/n)\n>> ")
+  fmt.Scanln(&response)
+
+  if strings.ToLower(response) == "y" {
+    for i := range todolist.Items {
+      if todolist.Items[i].Completed {
+        RemoveItem(todolist, todolist.Items[i].Title, path)
+        i--
+      }
+    }
+  }
+  PrintList(todolist)
+}
+
 func PrintList(todolist *TodoList) {
 	fmt.Println("\n __ __        ___         _       _    _        _  ")
 	fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_")
@@ -140,7 +152,7 @@ func PrintList(todolist *TodoList) {
 	fmt.Println("       <___'                                        ")
 	fmt.Println("========================================================")
 	for _, item := range todolist.Items {
-    var comp string
+		var comp string
 		if item.Completed {
 			comp = "☑"
 		} else {
@@ -168,17 +180,17 @@ func main() {
 	todolist := Must(LoadList(todolistPath))
 
 	addPtr := flag.Bool(
-    "add", 
-    false, 
-    "used to add a new item to the list",
-  )
-  remPtr := flag.String(
-    "remove",
-    "",
-    "indicate a todolist item to be removed",
-  )
+		"add",
+		false,
+		"used to add a new item to the list",
+	)
+	remPtr := flag.String(
+		"remove",
+		"",
+		"indicate a todolist item to be removed",
+	)
 	compPtr := flag.String(
-		"completed",
+		"complete",
 		"",
 		"indicate a todolist item that has been completed",
 	)
@@ -196,7 +208,7 @@ func main() {
 	}
 
 	if *compPtr != "" {
-		err := CompleteItem(todolist, todolistPath, *compPtr)
+		err := CompleteItem(todolist, *compPtr, todolistPath)
 		if err == nil {
 			fmt.Printf("Successfully completed %s\n", *compPtr)
 		} else {
@@ -204,15 +216,19 @@ func main() {
 		}
 	}
 
-  if *remPtr != "" {
-    err := RemoveItem(todolist, *remPtr, todolistPath)
-    if err == nil {
-      fmt.Printf("Successfully removed %s!\n", *remPtr)
-    } else {
-      fmt.Println("Error completing item!", err)
-    }
-  }
+	if *remPtr != "" {
+		err := RemoveItem(todolist, *remPtr, todolistPath)
+		if err == nil {
+			fmt.Printf("Successfully removed %s!\n", *remPtr)
+		} else {
+			fmt.Println("Error completing item!", err)
+		}
+	}
 
 	PrintList(todolist)
-	CheckCompleted(todolist)
+  numComplete := CheckCompleted(todolist)
+	if numComplete > 0 {
+    fmt.Printf("\t !!! You have completed %d items !!!", numComplete)
+    RemoveCompleted(todolist, todolistPath)
+  }
 }
