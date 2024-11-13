@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-  "strings"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -80,7 +80,7 @@ func AddItem(path string, todolist *TodoList) error {
 		Title:       title,
 		Description: description,
 		Priority:    priority,
-    Completed:   false,
+		Completed:   false,
 	}
 
 	todolist.Items = append(todolist.Items, newItem)
@@ -88,43 +88,58 @@ func AddItem(path string, todolist *TodoList) error {
 	return SaveList(path, todolist)
 }
 
-// func RemoveItem(path string, 
+// func RemoveItem(path string,
 
 func CompleteItem(todolist *TodoList, path string, title string) error {
-  completed_item := strings.ToLower(title);
+	completed_item := strings.ToLower(title)
 
-  for i := range todolist.Items {
-    if strings.ToLower(todolist.Items[i].Title) == completed_item {
-      todolist.Items[i].Completed = true
+	for i := range todolist.Items {
+		if strings.ToLower(todolist.Items[i].Title) == completed_item {
+			todolist.Items[i].Completed = true
 
-      return SaveList(path, todolist)
-    }
-  }
+			return SaveList(path, todolist)
+		}
+	}
 
-  return fmt.Errorf("Item not found!")
+	return fmt.Errorf("Item not found!")
 }
 
+func CheckCompleted(todolist *TodoList) {
+	completedCount := 0
+
+	for i := range todolist.Items {
+		if todolist.Items[i].Completed {
+			completedCount++
+		}
+	}
+
+	if completedCount > 0 {
+		fmt.Printf("\n\t!!! You have %d completed item(s)!", completedCount)
+	}
+}
+
+// func RemoveCompleted(todolist *TodoList)
 func PrintList(todolist *TodoList) {
-  fmt.Println(" __ __        ___         _       _    _        _  ") 
-  fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_") 
-  fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ") 
-  fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
-  fmt.Println("       <___'                                        ")
-  fmt.Println("========================================================")
+	fmt.Println(" __ __        ___         _       _    _        _  ")
+	fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_")
+	fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ")
+	fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
+	fmt.Println("       <___'                                        ")
+	fmt.Println("========================================================")
 	for _, item := range todolist.Items {
 		fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
-    fmt.Println("--------------------------------------------------------")
+		fmt.Println("--------------------------------------------------------")
 		fmt.Printf("Description:    %s\n", item.Description)
 		fmt.Printf("Priority:       %d\n", item.Priority)
-    
-    var comp string
-    if item.Completed {
-      comp = "✓"
-    } else {
-      comp = "𐄂"
-    }
-    fmt.Printf("Completed:      %s\n", comp)
-    fmt.Println("========================================================")
+
+		var comp string
+		if item.Completed {
+			comp = "✓"
+		} else {
+			comp = "𐄂"
+		}
+		fmt.Printf("Completed:      %s\n", comp)
+		fmt.Println("========================================================")
 
 	}
 }
@@ -140,8 +155,15 @@ func main() {
 	todolistPath := "todolist.yaml"
 	todolist := Must(LoadList(todolistPath))
 
-	addPtr := flag.Bool("add", false, "used to add a new item to the list")
-  compPtr := flag.String("completed", "", "used to indicate a todolist item that has been completed")
+	addPtr := flag.Bool("add", 
+    false, 
+    "used to add a new item to the list",
+  )
+	compPtr := flag.String(
+		"completed",
+		"",
+		"used to indicate a todolist item that has been completed",
+	)
 
 	flag.Parse()
 
@@ -155,16 +177,15 @@ func main() {
 		}
 	}
 
-  if *compPtr != "" {
-    err := CompleteItem(todolist, todolistPath, *compPtr)
-    if err == nil {
-      fmt.Printf("Successfully completed %s", *compPtr)
-    } else {
-      fmt.Println("Error completing item!", err)
-      
-    }
-  }
-
+	if *compPtr != "" {
+		err := CompleteItem(todolist, todolistPath, *compPtr)
+		if err == nil {
+			fmt.Printf("Successfully completed %s", *compPtr)
+		} else {
+			fmt.Println("Error completing item!", err)
+		}
+	}
 
 	PrintList(todolist)
+	CheckCompleted(todolist)
 }
