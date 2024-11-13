@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
-  "io"
+  "strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,43 +22,48 @@ type Item struct {
 }
 
 func SaveList(path string, todolist *TodoList) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
+	file := Must(os.Create(path))
+
 	defer file.Close()
 
-
+	encoder := yaml.NewEncoder(file)
+	return encoder.Encode(todolist)
 }
 
 func LoadList(path string) (*TodoList, error) {
 	todolist := &TodoList{}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := SaveList(path, todolist)
-		if err != nil {
-			return nil, err
+		var response string
+		fmt.Print("No Todolist detected!! Would you like to create one? (y/n)\n>> ")
+		fmt.Scanln(&response)
+
+		if response == "y" || response == "Y" {
+			err := SaveList(path, todolist)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, nil
 		}
+
 	} else {
-		file, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
+		// Open the todolist file
+		file := Must(os.Open(path))
+
 		defer file.Close()
 
-		decoder := json.NewDecoder(file)
-		err = decoder.Decode(todolist)
-		if err != nil {
+		// Decode the YAML into the todolist struct
+		decoder := yaml.NewDecoder(file)
+		if err := decoder.Decode(todolist); err != nil {
 			return nil, err
 		}
 	}
+
 	return todolist, nil
 }
 
-func addItem(todolist *TodoList) {
-	in := `{"items":[]}`
-	json.Unmarshal([]byte(in), todolist)
-
+func AddItem(path string, todolist *TodoList) error {
 	var title, description string
 	var priority int
 
@@ -80,33 +84,49 @@ func addItem(todolist *TodoList) {
 
 	todolist.Items = append(todolist.Items, newItem)
 
-	j, _ := json.Marshal(todolist)
-	fmt.Println(string(j))
+	return SaveList(path, todolist)
 }
 
 func PrintList(todolist *TodoList) {
+  fmt.Println(" __ __        ___         _       _    _        _  ") 
+  fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_") 
+  fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ") 
+  fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
+  fmt.Println("       <___'                                        ")
+  fmt.Println("========================================================")
 	for _, item := range todolist.Items {
-		fmt.Printf("Title:          %s\n", item.Title)
+		fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
+    fmt.Println("--------------------------------------------------------")
 		fmt.Printf("Description:    %s\n", item.Description)
 		fmt.Printf("Priority:       %d\n", item.Priority)
+    fmt.Println("========================================================")
+
 	}
 }
 
-func main() {
-	todolistPath := "todolist.json"
-	todolist, err := LoadList(todolistPath)
+func Must[T any](v T, err error) T {
 	if err != nil {
-		print(" !!! Error loading todo list: ", err)
+		panic(err)
 	}
+	return v
+}
+
+func main() {
+	todolistPath := "todolist.yaml"
+	todolist := Must(LoadList(todolistPath))
 
 	addPtr := flag.Bool("add", false, "used to add a new item to the list")
 
 	flag.Parse()
 
 	if *addPtr {
-		addItem(todolist)
-	}
+		err := AddItem(todolistPath, todolist)
 
-	SaveList(todolistPath, todolist)
+		if err != nil {
+			fmt.Println("Error adding item!")
+		} else {
+			fmt.Println("Item added successfully!")
+		}
+	}
 	PrintList(todolist)
 }
