@@ -104,17 +104,24 @@ func RemoveItem(todolist *TodoList, title string, path string) error {
 }
 
 func CompleteItem(todolist *TodoList, title string, path string) error {
-	completed_item := strings.ToLower(title)
+  completed_item := strings.ToLower(title)
 
-	for i := range todolist.Items {
-		if strings.ToLower(todolist.Items[i].Title) == completed_item {
-			todolist.Items[i].Completed = true
+  for i := range todolist.Items {
+    if strings.ToLower(todolist.Items[i].Title) == completed_item {
+      todolist.Items[i].Completed = true
 
-			return SaveList(todolist, path)
-		}
-	}
+      return SaveList(todolist, path)
+    }
+  }
+  return fmt.Errorf("Item not found!")
+}
 
-	return fmt.Errorf("Item not found!")
+func CompleteAll(todolist *TodoList, path string) error {
+  for i := range todolist.Items {
+    todolist.Items[i].Completed = true
+  }
+
+  return SaveList(todolist, path)
 }
 
 func CheckCompleted(todolist *TodoList) int {
@@ -125,23 +132,29 @@ func CheckCompleted(todolist *TodoList) int {
 			completedCount++
 		}
 	}
-  return completedCount
+	return completedCount
 }
 
 func RemoveCompleted(todolist *TodoList, path string) {
-  var response string
-  fmt.Print("\nWould you like to delete all completed items? (y/n)\n>> ")
-  fmt.Scanln(&response)
+	var response string
+	var found bool
+	fmt.Print("\n\nWould you like to delete all completed items? (y/n)\n>> ")
+	fmt.Scanln(&response)
 
-  if strings.ToLower(response) == "y" {
-    for i := range todolist.Items {
-      if todolist.Items[i].Completed {
-        RemoveItem(todolist, todolist.Items[i].Title, path)
-        i--
+	if strings.ToLower(response) == "y" {
+		i := 0
+		for found == false {
+			if todolist.Items[i].Completed {
+        err := RemoveItem(todolist, todolist.Items[i].Title, path)
+        if err != nil {
+          
+        }
+			} else {
+        i++
       }
-    }
-  }
-  PrintList(todolist)
+		}
+		PrintList(todolist)
+	}
 }
 
 func PrintList(todolist *TodoList) {
@@ -185,15 +198,20 @@ func main() {
 		"used to add a new item to the list",
 	)
 	remPtr := flag.String(
-		"remove",
+		"r",
 		"",
 		"indicate a todolist item to be removed",
 	)
 	compPtr := flag.String(
-		"complete",
+		"c",
 		"",
 		"indicate a todolist item that has been completed",
 	)
+  compAllPtr := flag.Bool(
+		"ca",
+		false,
+		"indicate that all items have been completed",
+  )
 
 	flag.Parse()
 
@@ -216,6 +234,15 @@ func main() {
 		}
 	}
 
+  if *compAllPtr {
+    err := CompleteAll(todolist, todolistPath)
+    if err == nil {
+      fmt.Println("Successfully completed all items!")
+    } else {
+      fmt.Println("Error!", err)
+    }
+  }
+
 	if *remPtr != "" {
 		err := RemoveItem(todolist, *remPtr, todolistPath)
 		if err == nil {
@@ -226,9 +253,9 @@ func main() {
 	}
 
 	PrintList(todolist)
-  numComplete := CheckCompleted(todolist)
+	numComplete := CheckCompleted(todolist)
 	if numComplete > 0 {
-    fmt.Printf("\t !!! You have completed %d items !!!", numComplete)
-    RemoveCompleted(todolist, todolistPath)
-  }
+		fmt.Printf("\t !!! You have completed %d items !!!", numComplete)
+		RemoveCompleted(todolist, todolistPath)
+	}
 }
