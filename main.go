@@ -104,24 +104,24 @@ func RemoveItem(todolist *TodoList, title string, path string) error {
 }
 
 func CompleteItem(todolist *TodoList, title string, path string) error {
-  completed_item := strings.ToLower(title)
+	completed_item := strings.ToLower(title)
 
-  for i := range todolist.Items {
-    if strings.ToLower(todolist.Items[i].Title) == completed_item {
-      todolist.Items[i].Completed = true
+	for i := range todolist.Items {
+		if strings.ToLower(todolist.Items[i].Title) == completed_item {
+			todolist.Items[i].Completed = true
 
-      return SaveList(todolist, path)
-    }
-  }
-  return fmt.Errorf("Item not found!")
+			return SaveList(todolist, path)
+		}
+	}
+	return fmt.Errorf("Item not found!")
 }
 
 func CompleteAll(todolist *TodoList, path string) error {
-  for i := range todolist.Items {
-    todolist.Items[i].Completed = true
-  }
+	for i := range todolist.Items {
+		todolist.Items[i].Completed = true
+	}
 
-  return SaveList(todolist, path)
+	return SaveList(todolist, path)
 }
 
 func CheckCompleted(todolist *TodoList) int {
@@ -135,34 +135,33 @@ func CheckCompleted(todolist *TodoList) int {
 	return completedCount
 }
 
-func RemoveCompleted(todolist *TodoList, path string) {
+func RemoveCompleted(todolist *TodoList, path string) error {
 	var response string
-	var found bool
 	fmt.Print("\n\nWould you like to delete all completed items? (y/n)\n>> ")
 	fmt.Scanln(&response)
 
 	if strings.ToLower(response) == "y" {
-		i := 0
-		for found == false {
-			if todolist.Items[i].Completed {
-        err := RemoveItem(todolist, todolist.Items[i].Title, path)
-        if err != nil {
-          
-        }
-			} else {
-        i++
-      }
+		// Filter out completed items
+		var updatedItems []Item
+		for _, item := range todolist.Items {
+			if !item.Completed {
+				updatedItems = append(updatedItems, item)
+			}
 		}
+		todolist.Items = updatedItems
+
+		// Save the updated list
+		if err := SaveList(todolist, path); err != nil {
+			return fmt.Errorf("failed to save updated list: %v", err)
+		}
+
+		fmt.Println("All completed items have been removed.")
 		PrintList(todolist)
 	}
+	return nil
 }
 
 func PrintList(todolist *TodoList) {
-	fmt.Println("\n __ __        ___         _       _    _        _  ")
-	fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_")
-	fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ")
-	fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
-	fmt.Println("       <___'                                        ")
 	fmt.Println("========================================================")
 	for _, item := range todolist.Items {
 		var comp string
@@ -171,6 +170,7 @@ func PrintList(todolist *TodoList) {
 		} else {
 			comp = "☐"
 		}
+
 		fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
 		fmt.Println("--------------------------------------------------------")
 		fmt.Printf("Description:    %s\n", item.Description)
@@ -207,13 +207,19 @@ func main() {
 		"",
 		"indicate a todolist item that has been completed",
 	)
-  compAllPtr := flag.Bool(
+	compAllPtr := flag.Bool(
 		"ca",
 		false,
 		"indicate that all items have been completed",
-  )
+	)
 
 	flag.Parse()
+
+	fmt.Println("\n __ __        ___         _       _    _        _  ")
+	fmt.Println("|  \\  \\ _ _  |_ _| ___  _| | ___ | |  <_> ___ _| |_")
+	fmt.Println("|     || | |  | | / . \\/ . |/ . \\| |_ | |<_-<  | | ")
+	fmt.Println("|_|_|_|`_. |  |_| \\___/\\___|\\___/|___||_|/__/  |_| ")
+	fmt.Println("       <___'\n")
 
 	if *addPtr {
 		err := AddItem(todolistPath, todolist)
@@ -234,14 +240,14 @@ func main() {
 		}
 	}
 
-  if *compAllPtr {
-    err := CompleteAll(todolist, todolistPath)
-    if err == nil {
-      fmt.Println("Successfully completed all items!")
-    } else {
-      fmt.Println("Error!", err)
-    }
-  }
+	if *compAllPtr {
+		err := CompleteAll(todolist, todolistPath)
+		if err == nil {
+			fmt.Println("Successfully completed all items!")
+		} else {
+			fmt.Println("Error!", err)
+		}
+	}
 
 	if *remPtr != "" {
 		err := RemoveItem(todolist, *remPtr, todolistPath)
