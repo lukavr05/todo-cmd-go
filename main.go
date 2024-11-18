@@ -111,6 +111,18 @@ func RemoveItem(todolist *TodoList, title string, path string) error {
 	return SaveList(todolist, path)
 }
 
+func RemoveAll(todolist *TodoList, path string) error {
+	var response string
+	fmt.Print("Are you sure you want to remove all items from the Todo List? (y/n)\n>> ")
+	fmt.Scanln(&response)
+
+	if strings.ToLower(response) == "y" {
+		todolist = &TodoList{}
+	}
+
+	return SaveList(todolist, path)
+}
+
 func CompleteItem(todolist *TodoList, title string, path string) error {
 	completed_item := strings.ToLower(title)
 
@@ -243,6 +255,11 @@ func main() {
 		"",
 		"indicate a todolist item to be removed",
 	)
+	remAllPtr := flag.Bool("ra",
+    false, 
+    "remove all items from the Todo List",
+  )
+
 	compPtr := flag.String(
 		"c",
 		"",
@@ -277,15 +294,15 @@ func main() {
 		}
 	}
 
-  if *sortPtr != "" {
-    PrintSortedList(todolist, *sortPtr)
-  }
+	if *sortPtr != "" {
+		PrintSortedList(todolist, *sortPtr)
+	}
 
 	if *compPtr != "" {
 		err := CompleteItem(todolist, *compPtr, todolistPath)
 		if err == nil {
 			fmt.Printf("Successfully completed %s\n", *compPtr)
-      PrintList(todolist.Items)
+			PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error completing item!", err)
 		}
@@ -295,7 +312,7 @@ func main() {
 		err := CompleteAll(todolist, todolistPath)
 		if err == nil {
 			fmt.Println("Successfully completed all items!")
-      PrintList(todolist.Items)
+			PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error!", err)
 		}
@@ -305,15 +322,22 @@ func main() {
 		err := RemoveItem(todolist, *remPtr, todolistPath)
 		if err == nil {
 			fmt.Printf("Successfully removed %s!\n", *remPtr)
-      PrintList(todolist.Items)
+			PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error completing item!", err)
 		}
 	}
-  
-  if flag.NFlag() == 0 {
-    PrintList(todolist.Items)
+
+  if *remAllPtr {
+    err := RemoveAll(todolist, todolistPath)
+    if err != nil {
+      fmt.Println("Error deleting all items!", err)
+    }
   }
+
+	if flag.NFlag() == 0 {
+		PrintList(todolist.Items)
+	}
 	numComplete := CheckCompleted(todolist)
 	if numComplete > 0 {
 		fmt.Printf("\t !!! You have completed %d items !!!", numComplete)
