@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -39,7 +40,7 @@ func LoadList(path string) (*TodoList, error) {
 		fmt.Print("No Todolist detected!! Would you like to create one? (y/n)\n>> ")
 		fmt.Scanln(&response)
 
-		if response == "y" || response == "Y" {
+		if strings.ToLower(response) == "y" {
 			err := SaveList(todolist, path)
 			if err != nil {
 				return nil, err
@@ -65,17 +66,24 @@ func LoadList(path string) (*TodoList, error) {
 }
 
 func AddItem(path string, todolist *TodoList) error {
-	var title, description string
-	var priority int
+  scanner := bufio.NewScanner(os.Stdin)
 
-	fmt.Print("Enter the title for the item:  ")
-	fmt.Scanln(&title)
+	fmt.Print("Enter the title for the item:          ")
+	scanner.Scan()
+  title := scanner.Text()
 
-	fmt.Print("Enter the description for the item:  ")
-	fmt.Scanln(&description)
+	fmt.Print("Enter the description for the item:    ")
+	scanner.Scan()
+  description := scanner.Text()
 
 	fmt.Print("Enter the priority of the item (1-5):  ")
-	fmt.Scanln(&priority)
+  
+  var priority int
+  _, err := fmt.Scanln(&priority)
+  for err != nil {
+    fmt.Println("Invalid input! Please try again!")
+    _, err = fmt.Scanln(&priority)  
+  }
 
 	if priority < 1 {
 		priority = 1
@@ -93,6 +101,7 @@ func AddItem(path string, todolist *TodoList) error {
 
 	todolist.Items = append(todolist.Items, newItem)
 
+  PrintList(todolist.Items)
 	return SaveList(todolist, path)
 }
 
