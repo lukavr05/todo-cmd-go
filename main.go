@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -75,6 +76,13 @@ func AddItem(path string, todolist *TodoList) error {
 
 	fmt.Print("Enter the priority of the item (1-5):  ")
 	fmt.Scanln(&priority)
+
+	if priority < 1 {
+		priority = 1
+	}
+	if priority > 5 {
+		priority = 5
+	}
 
 	newItem := Item{
 		Title:       title,
@@ -152,33 +160,66 @@ func RemoveCompleted(todolist *TodoList, path string) error {
 
 		// Save the updated list
 		if err := SaveList(todolist, path); err != nil {
-			return fmt.Errorf("failed to save updated list: %v", err)
+			return fmt.Errorf("Failed to save updated list: %v", err)
 		}
 
 		fmt.Println("All completed items have been removed.")
-		PrintList(todolist)
+		PrintList(todolist.Items)
 	}
 	return nil
 }
 
-func PrintList(todolist *TodoList) {
-	fmt.Println("========================================================")
-	for _, item := range todolist.Items {
-		var comp string
-		if item.Completed {
-			comp = "☑"
-		} else {
-			comp = "☐"
-		}
-
-		fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
-		fmt.Println("--------------------------------------------------------")
-		fmt.Printf("Description:    %s\n", item.Description)
-		fmt.Printf("Priority:       %d\n", item.Priority)
-		fmt.Printf("Completed:      %s\n", comp)
-		fmt.Println("========================================================")
-
+func PrintList(items []Item, headers ...string) {
+	if len(headers) > 0 {
+		header := headers[0]
+		fmt.Printf("\nSorted by %s!\n", header)
 	}
+	fmt.Println("========================================================")
+	if len(items) == 0 {
+		fmt.Println("Todo list is empty :(")
+		fmt.Println("========================================================")
+	} else {
+		for _, item := range items {
+			var comp string
+			if item.Completed {
+				comp = "☑"
+			} else {
+				comp = "☐"
+			}
+
+			fmt.Printf("Title:          %s\n", strings.ToUpper(item.Title))
+			fmt.Println("--------------------------------------------------------")
+			fmt.Printf("Description:    %s\n", item.Description)
+			fmt.Printf("Priority:       %d\n", item.Priority)
+			fmt.Printf("Completed:      %s\n", comp)
+			fmt.Println("========================================================")
+		}
+	}
+}
+
+func PrintSortedList(todolist *TodoList, sortBy string) {
+	sortedItems := make([]Item, len(todolist.Items))
+	copy(sortedItems, todolist.Items)
+
+	switch strings.ToLower(sortBy) {
+	case "title":
+		sort.SliceStable(sortedItems, func(i, j int) bool {
+			return strings.ToLower(sortedItems[i].Title) < strings.ToLower(sortedItems[j].Title)
+		})
+	case "priority":
+		sort.SliceStable(sortedItems, func(i, j int) bool {
+			return sortedItems[i].Priority < sortedItems[j].Priority
+		})
+	case "completed":
+		sort.SliceStable(sortedItems, func(i, j int) bool {
+			return !sortedItems[i].Completed && sortedItems[j].Completed
+		})
+	default:
+		fmt.Println("Invalid sort field. Valid options are: title, priority, completed.")
+		return
+	}
+
+	PrintList(sortedItems, strings.ToLower(sortBy))
 }
 
 func Must[T any](v T, err error) T {
@@ -212,6 +253,11 @@ func main() {
 		false,
 		"indicate that all items have been completed",
 	)
+	sortPtr := flag.String(
+		"s",
+		"",
+		"sort the todo list by a specific field (title, priority, completed)",
+	)
 
 	flag.Parse()
 
@@ -231,10 +277,15 @@ func main() {
 		}
 	}
 
+  if *sortPtr != "" {
+    PrintSortedList(todolist, *sortPtr)
+  }
+
 	if *compPtr != "" {
 		err := CompleteItem(todolist, *compPtr, todolistPath)
 		if err == nil {
 			fmt.Printf("Successfully completed %s\n", *compPtr)
+      PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error completing item!", err)
 		}
@@ -244,6 +295,7 @@ func main() {
 		err := CompleteAll(todolist, todolistPath)
 		if err == nil {
 			fmt.Println("Successfully completed all items!")
+      PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error!", err)
 		}
@@ -253,12 +305,15 @@ func main() {
 		err := RemoveItem(todolist, *remPtr, todolistPath)
 		if err == nil {
 			fmt.Printf("Successfully removed %s!\n", *remPtr)
+      PrintList(todolist.Items)
 		} else {
 			fmt.Println("Error completing item!", err)
 		}
 	}
-
-	PrintList(todolist)
+  
+  if flag.NFlag() == 0 {
+    PrintList(todolist.Items)
+  }
 	numComplete := CheckCompleted(todolist)
 	if numComplete > 0 {
 		fmt.Printf("\t !!! You have completed %d items !!!", numComplete)
